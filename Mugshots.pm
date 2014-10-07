@@ -4,13 +4,15 @@ use Moose;
 use URI::Escape;
 use WWW::Mechanize;
 use Web::Scraper;
+use HTTP::Cookies;
 use Data::Dumper;
 
 my $base_search_url = 'http://mugshots.com/search.html?q=';
 
 my $mech = WWW::Mechanize->new(
 	agent => 'Madison Police Blotter Bot 1.0',
-	autocheck => 0
+	autocheck => 0,
+	cookie_jar => HTTP::Cookies->new( file => "$ENV{HOME}/.police-blotter-cookies.txt" )
 );
 
 my $scraper = scraper {

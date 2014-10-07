@@ -3,6 +3,7 @@ use strict;
 use warnings;
 use File::Slurp;
 use WWW::Mechanize;
+use HTTP::Cookies;
 use Web::Scraper;
 use JSON::XS;
 use XML::Simple;
@@ -19,7 +20,7 @@ my $previous_fh = select(STDOUT);
 $| = 1;
 select($previous_fh);
 
-my $disable_cache = 1;
+my $disable_cache = 0;
 
 my $location;
 my $base_script_dir;
@@ -33,6 +34,7 @@ BEGIN {
 	}
 	$base_script_dir .= '/';
 	require $base_script_dir . 'Mugshots.pm';
+	require $base_script_dir . 'CCAP.pm';
 }
 
 
@@ -44,12 +46,15 @@ sub trim {
 	return $v;
 }
 
-my $mech = WWW::Mechanize->new( agent => 'Madison Police Blotter Bot 1.0' );
+my $mech = WWW::Mechanize->new(
+	agent => 'Madison Police Blotter Bot 1.0',
+	autocheck => 0,
+	cookie_jar => HTTP::Cookies->new( file => "$ENV{HOME}/.police-blotter-cookies.txt" )
+);
 my $mugshots = new Mugshots(state => 'Wisconsin');
+my $ccap = new CCAP();
 
-#print "$location\n";
-#print "$base_script_dir\n";
-#exit(0);
+$ccap->search({first_name => 'Don', last_name => 'Smith', mi => 'C'});
 
 my $base_url = 'http://www.cityofmadison.com';
 my $blotter_rss_url = $base_url . '/police/newsroom/incidentreports/rss.cfm?a=71';
