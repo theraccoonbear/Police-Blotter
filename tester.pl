@@ -41,12 +41,15 @@ use PersonalData::CCAP;
 use PersonalData::Mugshots;
 use PersonalData::DriversLicense;
 
-my $pb = new PoliceBlotter(cache_dir => $base_script_dir . 'cache/');
+my $pb = new PoliceBlotter(
+	disable_cache => 1,
+	cache_dir => $base_script_dir . 'cache/'
+);
 #my $mugshots = new PersonalData::Mugshots(state => 'Wisconsin');
 #my $ccap = new PersonalData::CCAP();
 my $dl = new PersonalData::DriversLicense();
 
-#print Dumper($pb->pullFeed());
+
 
 print $dl->gleanDL({
 	first_name => 'Donald',
@@ -56,3 +59,5 @@ print $dl->gleanDL({
 	gender => 'M'
 });
 
+
+print Dumper($pb->pullFeed());
