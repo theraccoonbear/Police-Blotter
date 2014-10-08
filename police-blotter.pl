@@ -20,7 +20,7 @@ my $previous_fh = select(STDOUT);
 $| = 1;
 select($previous_fh);
 
-my $disable_cache = 0;
+my $disable_cache = 1;
 
 my $location;
 my $base_script_dir;
@@ -33,11 +33,14 @@ BEGIN {
 		$base_script_dir = dirname($location);
 	}
 	$base_script_dir .= '/';
-	require $base_script_dir . 'Mugshots.pm';
-	require $base_script_dir . 'CCAP.pm';
+	unshift @INC, $base_script_dir . 'lib';
 }
 
 
+use PersonalData;
+use PersonalData::CCAP;
+use PersonalData::Mugshots;
+use PersonalData::DriversLicense;
 
 sub trim {
 	my $v = unidecode(decode_entities(shift @_ || ''));
@@ -51,10 +54,12 @@ my $mech = WWW::Mechanize->new(
 	autocheck => 0,
 	cookie_jar => HTTP::Cookies->new( file => "$ENV{HOME}/.police-blotter-cookies.txt" )
 );
-my $mugshots = new Mugshots(state => 'Wisconsin');
-my $ccap = new CCAP();
 
-$ccap->search({first_name => 'Don', last_name => 'Smith', mi => 'C'});
+my $mugshots = new PersonalData::Mugshots(state => 'Wisconsin');
+my $ccap = new PersonalData::CCAP();
+my $dl = new PersonalData::DriversLicense();
+
+
 
 my $base_url = 'http://www.cityofmadison.com';
 my $blotter_rss_url = $base_url . '/police/newsroom/incidentreports/rss.cfm?a=71';
@@ -163,15 +168,5 @@ if ($mech->success()) {
 		}
 	}
 	
-	#my $xml = XMLin($page);
-	#if ($xml->{channel} && $xml->{channel}->{item}) {
-	#	foreach my $entry (@{$xml->{channel}->{item}}) {
-	#		$entry->{md5} = md5_hex($entry->{guid});
-	#		$entry->{url} = $base_url . $entry->{link};
-	#		print Dumper($entry);
-	#	}
-	#}
-	
-	#print Dumper($xml);
 }
 
