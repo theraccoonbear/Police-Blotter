@@ -8,6 +8,7 @@ use Text::Unidecode;
 use Web::Scraper;
 use Text::Soundex;
 use Date::Parse;
+use Data::Dumper;
 
 my $tables = {};
 

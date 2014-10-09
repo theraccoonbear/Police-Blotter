@@ -38,9 +38,11 @@ BEGIN {
 
 
 use PersonalData;
+use PersonalData::Person;
 use PersonalData::CCAP;
 use PersonalData::Mugshots;
 use PersonalData::DriversLicense;
+
 
 sub trim {
 	my $v = unidecode(decode_entities(shift @_ || ''));
