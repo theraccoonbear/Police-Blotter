@@ -23,11 +23,16 @@ use XML::RSS;
 use HTML::Entities;
 
 use PersonalData::Mugshots;
+use PersonalData::Person;
 
 my $base_url = 'http://www.cityofmadison.com';
 my $blotter_rss_url = $base_url . '/police/newsroom/incidentreports/rss.cfm?a=71';
 my $blotter_url = $base_url . '/police/newsroom/incidentreports/';
 
+my $json = JSON::XS->new->ascii->pretty->allow_nonref;
+
+$json->allow_blessed(1);
+$json->convert_blessed(1);
 
 my $index_scraper = scraper {
 	process 'div.incident-reports', 'entries[]' => scraper {
@@ -83,6 +88,8 @@ has disable_cache => (
 sub pullFeed {
 	my $self = shift @_;
 
+	my $feed = [];
+	
 	if (my $page = $self->fetchPage($blotter_url)) {
 		my $results = $index_scraper->scrape($page);
 		
@@ -118,50 +125,96 @@ sub pullFeed {
 						
 						
 						if ($entry->{detail_arrested}) {
-							my $arrested = [split(/<br[^>]*>/, $entry->{detail_arrested})];
-							my $arrests = [];
-							
-							foreach my $line (@$arrested) {
-								my $ar = {
-									name => '...',
-									age => '...',
-									gender => 'M'
-								};
-								if ($line =~ m/(?<name>[^,]+),.+(age\s+\d{2}|\d{2}\sYOA)/i) { $ar->{name} = $+{name}; }
-								if ($line =~ m/age\s+(?<age>\d{2})/i || $line =~ m/(?<age>[\d]{2})\sYOA/i) { $ar->{age} = $+{age}; }
-								if ($ar->{name} ne '...' && $ar->{age} ne '...') {
-									$ar->{name} = $self->trim($ar->{name});
-									$ar->{name} =~ s/[^A-Za-z0-9]+/ /gi;
-									my @parts = split(/\s+/, $ar->{name});
-									if (scalar @parts == 2) {
-										$ar->{first_name} = $parts[0];
-										$ar->{last_name} = $parts[1];
-									} elsif (scalar @parts == 3) {
-										$ar->{first_name} = $parts[0];
-										$ar->{mi} = $parts[1];
-										$ar->{last_name} = $parts[2];
-									}
-									
-									if ($self->find_mugshots()) {
-										$ar->{mugshots} = $self->mugshots->search($ar->{name});
-									}
-									
-									push @$arrests, $ar;
-								}
-							}
-							
-							$entry->{arrests} = $arrests;
-						}
+							$entry->{arrests} = $self->parseArrests($entry->{detail_arrested}); #$arrests;
+						} # arrests?
 						
+					} # fetched blotter entry detail OK?
+					write_file($cache_file, $json->encode($entry));
+					push @$feed, $entry;
+					if ($self->debug_output) {
+						print STDERR Dumper($entry);
 					}
-					write_file($cache_file, encode_json($entry));
-				}
-				
-				print Dumper($entry);
-			}
+					
+				} # use cache?
+			} # has created date
+		} # foreach(entry)
+	} # fetched feed page OK?
+	
+	return $feed;
+} # pullFeed()
+
+sub parseArrests {
+	my $self = shift @_;
+	my $details = shift @_;
+	
+	
+	my $arrested = [split(/<br[^>]*>/, $details)];
+	my $arrests = [];
+	
+	my $idx = 0;
+	
+	foreach my $line (@$arrested) {
+		$idx++;
+		my $ar = {
+			name => '...',
+			age => '...',
+			gender => 'M',
+			race => '...'
+		};
+		
+		my $race_map = {
+			'W' => 'White',
+			'B' => 'Black',
+			'A' => 'Asian',
+			'H' => 'Hispanic',
+			'L' => 'Hispanic'
+		};
+		
+		if ($line =~ m/
+		\b
+		(?<gender>[MF]) # Male Female
+		\/? 						# optional slash separator 
+		(?<race>[WBHLA])
+		\b/ix) {
+			$ar->{race} = $race_map->{$+{race}};
+		}
+		if ($line =~ m/(?<name>[A-Za-z.\s]+),/xi) { $ar->{name} = $+{name}; }
+		if ($line =~ m/age\s+(?<age>\d{2})/i || $line =~ m/(?<age>\d{2})\s+(?:YOA|years|yrs)/xi) { $ar->{age} = $+{age}; }
+		
+		if ($self->debug_output) {
+			print STDERR "Arrest Line $idx: $line\n";
+			print STDERR Dumper($ar);
 		}
 		
-	}
-} # pullFeed()
+		
+		if ($ar->{name} ne '...' && $ar->{age} ne '...') {
+			$ar->{name} = $self->trim($ar->{name});
+			$ar->{name} =~ s/[^A-Za-z0-9]+/ /gi;
+			my @parts = split(/\s+/, $ar->{name}, 3);
+			if (scalar @parts == 2) {
+				$ar->{first_name} = $parts[0];
+				$ar->{last_name} = $parts[1];
+			} elsif (scalar @parts == 3) {
+				$ar->{first_name} = $parts[0];
+				$ar->{mi} = $parts[1];
+				$ar->{last_name} = $parts[2];
+			} # name style?
+			
+			
+			
+			my $arrested_person = new PersonalData::Person(%$ar);						
+			
+			if ($self->find_mugshots()) {
+				$arrested_person->findMugshots();
+				#$ar->{mugshots} = $self->mugshots->search($ar->{name});
+			} # pull mugshots?
+			
+			push @$arrests, $arrested_person; #$ar;
+		} # parsed name and age?
+	} # foreach(arrest)
+	
+	#$entry->{arrests} = $arrests;
+	return $arrests;
+}
 
 1;

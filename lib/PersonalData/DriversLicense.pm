@@ -155,7 +155,7 @@ sub gleanDL {
 	my $known = shift @_;
 	
 
-	
+	my $tmp = '';
 	
 	my $dob = {
 		'year' => '??',
@@ -189,7 +189,9 @@ sub gleanDL {
 			$first_mid = $tables->{DL}->{first_initial}->{substr($known->{first_name}, 0, 1)} + $mi;
 		}
 	}
-	$first_mid = sprintf('%03d', $first_mid . substr($dob->{year}, 0, 1));
+	#$first_mid = sprintf('%03d', $first_mid . substr($dob->{year}, 0, 1));
+	$tmp = $first_mid . substr($dob->{year}, 0, 1);
+	$first_mid = ('0' x (3 - length($tmp))) . $tmp;
 	push @$parts, $first_mid;
 	
 	my $mon_day_gen = '???';
@@ -200,7 +202,10 @@ sub gleanDL {
 		
 	}
 	
-	push @$parts, substr($dob->{year}, -1, 1) . sprintf('%03d', $mon_day_gen);
+	#$first_mid = sprintf('%03d', $first_mid . substr($dob->{year}, 0, 1));
+	$tmp = $mon_day_gen;
+	$mon_day_gen = ('0' x (3 - length($tmp))) . $tmp;
+	push @$parts, substr($dob->{year}, -1, 1) . $mon_day_gen; # sprintf('%03d', $mon_day_gen);
 	
 	push @$parts, '??'; # last two are sequence/unknown
 	
@@ -210,8 +215,7 @@ sub gleanDL {
 
 
 
-sub DLMonthDayGender
-{
+sub DLMonthDayGender {
 	my($Month, $Day, $Gender) = @_;
 	my($DateNo);
 

@@ -24,6 +24,12 @@ has 'mech' => (
 	}
 );
 
+has debug_output => (
+	is => 'rw',
+	isa => 'Bool',
+	default => 0
+);
+
 sub trim {
 	my $self = shift;
 	my $v = unidecode(decode_entities(shift @_ || ''));

@@ -41,23 +41,34 @@ use PersonalData::CCAP;
 use PersonalData::Mugshots;
 use PersonalData::DriversLicense;
 
-my $pb = new PoliceBlotter(
-	disable_cache => 1,
-	cache_dir => $base_script_dir . 'cache/'
-);
-#my $mugshots = new PersonalData::Mugshots(state => 'Wisconsin');
-#my $ccap = new PersonalData::CCAP();
-my $dl = new PersonalData::DriversLicense();
+use MadisonAssessor;
+use MadisonAssessor::Property;
+
+my $assessor = new MadisonAssessor();
+
+$assessor->searchByAddress('123 E Main St');
+
+#my $pb = new PoliceBlotter(
+#	disable_cache => 1,
+#	debug_output => 1,
+#	cache_dir => $base_script_dir . 'cache/'
+#);
+
+##my $mugshots = new PersonalData::Mugshots(state => 'Wisconsin');
+##my $ccap = new PersonalData::CCAP();
+#my $dl = new PersonalData::DriversLicense();
+#
+#
+#
+#print $dl->gleanDL({
+#	first_name => 'John',
+#	mi => 'M',
+#	last_name => 'Doe',
+#	DOB => '01/01/1950',
+#	gender => 'M'
+#});
 
 
 
-print $dl->gleanDL({
-	first_name => 'Donald',
-	mi => 'C',
-	last_name => 'Smith',
-	DOB => '03/02/1979',
-	gender => 'M'
-});
-
-
-print Dumper($pb->pullFeed());
+#my $feed = $pb->pullFeed();
+#print Dumper($feed);
