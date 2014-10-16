@@ -30,6 +30,7 @@ has debug_output => (
 	default => 0
 );
 
+
 sub trim {
 	my $self = shift;
 	my $v = unidecode(decode_entities(shift @_ || ''));

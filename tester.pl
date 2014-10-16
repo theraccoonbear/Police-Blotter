@@ -46,7 +46,7 @@ use MadisonAssessor::Property;
 
 my $assessor = new MadisonAssessor();
 
-$assessor->searchByAddress('123 E Main St');
+$assessor->searchByAddress('2702 Commercial Ave, Madison, WI 53704');
 
 #my $pb = new PoliceBlotter(
 #	disable_cache => 1,
