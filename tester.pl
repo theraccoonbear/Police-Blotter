@@ -41,12 +41,37 @@ use PersonalData::CCAP;
 use PersonalData::Mugshots;
 use PersonalData::DriversLicense;
 
-use MadisonAssessor;
-use MadisonAssessor::Property;
+use Property::Source::MadisonAssessor;
+use Property::Source::AccessDane;
 
-my $assessor = new MadisonAssessor();
+#my $assessor = new Property::Source::MadisonAssessor();
+my $dane = new Property::Source::AccessDane();
 
-$assessor->searchByAddress('2702 Commercial Ave, Madison, WI 53704');
+$dane->searchByAddress('2731 Moland Street, Madison WI');
+
+#my $ccap = new PersonalData::CCAP();
+
+#$dane->searchByOwner(
+
+#my $result = $assessor->searchByLastName('Smith');
+#my $result = $assessor->searchByAddressRange({
+#	street_name => 'Dunning',
+#	street_type => 'St',
+#	street_number_1 => 500,
+#	street_number_2 => 599
+#});
+#
+#
+#if ($result->{result_type} eq 'multiple') {
+#	foreach my $ent (@{$result->{entries}}) {
+#		if ($ent->{owner} =~ m/^(?<last_name>[A-Za-z]+),\s+(?<first_name>[A-Za-z]+)(?:\s+(?<mi>[A-Z])\b)?/) {
+#			my $cases = $ccap->search({last_name => $+{last_name}, first_name => $+{first_name}, mi => $+{mi} || ''});
+#			print "==== $ent->{owner} :: $ent->{address} ===\n";
+#			print Dumper($cases);
+#		}
+#	}
+#}
+
 
 #my $pb = new PoliceBlotter(
 #	disable_cache => 1,

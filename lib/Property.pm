@@ -1,4 +1,4 @@
-package MadisonAssessor::Property;
+package Property;
 
 use Moose;
 

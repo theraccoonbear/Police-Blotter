@@ -72,13 +72,14 @@ sub search {
 		$content = $self->mech()->content();
 		my $entries = $results_scraper->scrape($content, $base_url);
 		foreach my $entry (@{$entries->{entries}}) {
-			print "$entry->{name}\n";
+			# "$entry->{name}\n";
 			my @names = split(/\s*,\s*/, $entry->{name});
 			my @first_mid = split(/\s+/, $names[1]);
 			$entry->{last_name} = $names[0];
 			$entry->{first_name} = $first_mid[0];
 			$entry->{middle} = $first_mid[1] || '';
 			$entry->{suffix} = $names[2] || '';
+			$entry->{url} = $entry->{url}->as_string();
 			push @$results, $entry;
 		}
 	}
