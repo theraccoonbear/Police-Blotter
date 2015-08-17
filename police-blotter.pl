@@ -7,7 +7,7 @@ use HTTP::Cookies;
 use Web::Scraper;
 use JSON::XS;
 use XML::Simple;
-use Data::Dumper;
+use Data::Printer;
 use Digest::MD5 qw(md5 md5_hex);
 use Cwd 'abs_path';
 use File::Basename;
@@ -166,7 +166,7 @@ if ($mech->success()) {
 				write_file($cache_file, encode_json($entry));
 			}
 			
-			print Dumper($entry);
+			p($entry);
 		}
 	}
 	

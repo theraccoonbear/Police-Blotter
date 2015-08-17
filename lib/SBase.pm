@@ -2,9 +2,11 @@ package SBase;
 
 use Moose;
 
+use HTTP::Cookies;
 use WWW::Mechanize;
 use HTML::Entities;
 use Text::Unidecode;
+use IO::Socket::SSL;
 use Web::Scraper;
 use Text::Soundex;
 use Date::Parse;
@@ -19,7 +21,13 @@ has 'mech' => (
 		return WWW::Mechanize->new(
 			agent => 'Madison Police Blotter Bot 1.0',
 			autocheck => 0,
-			cookie_jar => HTTP::Cookies->new( file => "$ENV{HOME}/.personal-data.txt" )
+			SSL_verify_mode => IO::Socket::SSL::SSL_VERIFY_NONE,
+			PERL_LWP_SSL_VERIFY_HOSTNAME => 0,
+			verify_hostname => 0,
+			ssl_opts => {
+				verify_hostname => 0
+			},
+			cookie_jar => new HTTP::Cookies( file => ".personal-data.txt" )
 		);
 	}
 );
