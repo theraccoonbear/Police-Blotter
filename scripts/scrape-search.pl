@@ -41,7 +41,7 @@ foreach my $p (@$people) {
         print "\n";
         for (my $i = 0; $i < scalar @{ $addr->{data} } && $i < 5; $i++) {
             my $ent = $addr->{data}->[$i];
-            print "  - $ent->{Address}, $ent->{City}\n";
+            print "  - $ent->{Address}, $ent->{City} / " . join(', ', @{ $ent->{Owners} }) . "\n";
         }
     }
     

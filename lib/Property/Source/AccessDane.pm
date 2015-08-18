@@ -122,7 +122,13 @@ sub _getParcelList {
 				return $city;
 			};
 			process 'td ul li', 'Owners[]' => 'TEXT';
-			process 'td div', 'Address' => sub { return $self->trim($self->strip($_->as_HTML())); };
+			process 'td div', 'Address' => sub {
+				my $addr = $self->trim($self->strip($_->as_HTML()));
+				if (length($addr) < 1) {
+					$addr = 'UNKNOWN ADDRESS';
+				}
+				return $addr;
+			};
 		}
 	};
 	
