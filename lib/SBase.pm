@@ -11,6 +11,8 @@ use Web::Scraper;
 use Text::Soundex;
 use Date::Parse;
 use Data::Dumper;
+use Data::Printer;
+use HTML::Strip;
 
 my $tables = {};
 
@@ -38,6 +40,19 @@ has debug_output => (
 	default => 0
 );
 
+has stripper => (
+	is => 'rw',
+	isa => 'HTML::Strip',
+	default => sub {
+		return new HTML::Strip();
+	}
+);
+
+sub strip {
+	my $self = shift @_;
+	my $str = shift @_;
+	return $self->stripper->parse($str);
+}
 
 sub trim {
 	my $self = shift;

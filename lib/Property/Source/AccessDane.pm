@@ -2,6 +2,7 @@ package Property::Source::AccessDane;
 
 use Moose;
 use Data::Printer;
+use Data::Dumper;
 use Web::Scraper;
 use JSON::XS;
 
@@ -15,27 +16,7 @@ has 'session_inited' => (
 );
 
 
-my $property_details_scraper = scraper {
-	#process '#parcelDetail tr', 'fields[]' => scraper {
-	#	process '//td[1]', 'label' => 'TEXT';
-	#	process '//td[contains(@colspan, 2)]', 'value' => 'TEXT';
-	#};
-	
-	process '#assessmentDetail thead th', 'years[]' => 'TEXT', 'year_col[]' => '@data-colnum';
-	process '#assessmentDetail tbody tr', 'rows[]' => scraper {
-		process 'td', 'values[]' => 'TEXT', 'year_col[]' => '@data-colnum';
-	};
-	
-	#process '//div[contains(@class, \'taxDetailTable\')', 'taxDetails[]' => scraper {
-	#	process 'table', 'year' => '@data-tableyear';
-	#	process '//tr[1]/th', 'labels[]' => 'TEXT';
-	#	process '//tr[2]/td', 'value[]' => 'TEXT';
-	#	process '//tr[position() > 2]', 'extras[]' => scraper {
-	#		process '//td[1]', 'label' => 'TEXT';
-	#		process '//td[2]', 'value' => 'TEXT';
-	#	}
-	#};
-}; # $property_details_scraper
+
 
 my $property_list_scraper = scraper {
 	
@@ -59,28 +40,65 @@ sub _getParcelData {
 		assessments => {}
 	};
 	
-	my $sr = $property_details_scraper->scrape($content);
-	foreach my $fent (@{ $sr->{fields} }) {
-		$parcel->{$self->trim($fent->{label})} = $self->trim($fent->{value});
-	}
-	foreach my $idx (@{ $sr->{year_col} }) {
-		if ($idx =~ m/^\d+$/) {
-			my $year = $self->trim($sr->{years}->[$idx]);
-			if ($year =~ m/^\d+$/) {
-				my $year_ent = {};
-				foreach my $row (@{ $sr->{rows} }) {
-					$year_ent->{$self->trim($row->{values}->[0])} = $self->trim($row->{values}->[$idx + 1]);
-				}
-				$parcel->{assessments}->{$year - 1} = $year_ent;
+	my $property_details_scraper = scraper {
+		process '#parcelDetail tr', 'fields[]' => scraper {
+			process '//td[1]', 'label' => 'TEXT';
+			process '//td[contains(@colspan, 2)]', 'value' => sub {
+				my $val = $_->as_HTML();
+				$val =~ s/<li>/\n/g;
+				$val = $self->trim($self->strip($val));
+				$val =~ s/\n/, /g;
+				return $val;
+			};
+		};
+		
+		process '#assessmentDetail thead th', 'years[]' => 'TEXT';
+		process '#assessmentDetail tbody tr', 'rows[]' => scraper {
+			process 'td', 'values[]' => 'TEXT';
+		};
+		
+		process '//div[contains(@class, \'taxDetailTable\')', 'taxDetails[]' => scraper {
+			process 'table', 'year' => '@data-tableyear';
+			process '//tr[1]/th', 'labels[]' => 'TEXT';
+			process '//tr[2]/td', 'value[]' => 'TEXT';
+			process '//tr[position() > 2]', 'extras[]' => scraper {
+				process '//td[1]', 'label' => 'TEXT';
+				process '//td[2]', 'value' => 'TEXT';
 			}
+		};
+	}; # $property_details_scraper
+	
+	
+	my $sr = $property_details_scraper->scrape($content);
+	
+	foreach my $fent (@{ $sr->{fields} }) {
+		my $label = $self->trim($fent->{label});
+		$label =~ s/\s+/_/g;
+		$parcel->{$label} = $self->trim($fent->{value});
+	}
+	
+	my $highest_year = 0;
+	my $highest_year_assessment = 0;
+	my $y_idx = -1;
+	foreach my $year (@{ $sr->{years} }) {
+		$year = $self->trim($year);
+		$y_idx++;
+		if ($year =~ m/^\d{4}$/) {
+			my $assess_ent = {};
+			foreach my $fent (@{ $sr->{rows} }) {
+				my $fname = $self->trim($fent->{values}->[0]);
+				$fname =~ s/\s+/_/g;
+				$assess_ent->{$fname} = $self->trim($fent->{values}->[$y_idx]);
+			}
+			if ($highest_year < $year && $assess_ent->{'Estimated_Fair_Market_Value'} =~ m/\d/) {
+				$highest_year_assessment = $assess_ent->{'Estimated_Fair_Market_Value'};
+				$highest_year = $year;
+			}
+			
+			$parcel->{assessments}->{$year} = $assess_ent;
 		}
 	}
-	p($parcel);
-	#print encode_json($sr);
-	exit(0);
-	#foreach my $tax_ent (@{ $sr->{taxDetails} }) {
-	#	$parce->{taxes}->{$tax_ent->{year}} = 
-	#}
+	$parcel->{'Assessed_Value'} = $highest_year_assessment;
 	return $parcel;
 }
 
@@ -89,7 +107,9 @@ sub _getSearchResults {
 	my $page =  $self->mech->content;
 	my $result = [];
 	
-	if ($page =~ m/id="parcelTable"/) {
+	if ($page =~ m/Parcel Not Found/) {
+		# :(
+	} elsif ($page =~ m/id="parcelTable"/) {
 		push @$result, 'MULTIPLE'
 	} else {
 		push @$result, $self->_getParcelData($page);
@@ -119,14 +139,18 @@ sub _searchByType {
 	];
 	
 	$self->mech->post($url, $params);
-	return $self->_getSearchResults();
+	return {
+		data =>$self->_getSearchResults(),
+		search_type => $type,
+		search_term => $term
+	};
 }
 
 sub searchByName {
 	my $self = shift @_;
 	my $term = shift @_;
 	
-	$self->_searchByType($term, 'getowners');
+	return $self->_searchByType($term, 'getowners');
 }
 
 sub searchByAddress {
@@ -134,11 +158,11 @@ sub searchByAddress {
 	my $term = shift @_;
 	
 	my $addr = $self->_parseAddress($term);
-
+	
 	my $addr_ar = [];
 	push @$addr_ar, $addr->{street_number};
 	if (length($addr->{direction}) > 0) { push @$addr_ar, $addr->{direction}; }
-	push @$addr_ar, $addr->{base_street_name};
+	push @$addr_ar, $addr->{street_name} || $addr->{base_street_name};
 	push @$addr_ar, $addr->{street_type};
 	
 	return $self->_searchByType(join(' ', @$addr_ar), 'getaddresses');
