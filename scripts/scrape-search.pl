@@ -43,6 +43,10 @@ foreach my $p (@$people) {
             my $ent = $addr->{data}->[$i];
             print "  - $ent->{Address}, $ent->{City} / " . join(', ', @{ $ent->{Owners} }) . "\n";
         }
+        if (scalar @{ $addr->{data} } > 5) {
+            print "    Plus " . (scalar @{ $addr->{data} } - 5) . " more result(s)\n";
+        }
+        
     }
     
     print "-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=\n"
