@@ -99,7 +99,35 @@ sub _getParcelData {
 		}
 	}
 	$parcel->{'Assessed_Value'} = $highest_year_assessment;
+	$parcel->{City} = $parcel->{Municipality_Name};
+	$parcel->{City} =~ s/^(CITY|TOWN|VILLAGE)\s+OF\s+//gi;
 	return $parcel;
+}
+
+sub _getParcelList {
+	my $self = shift @_;
+	my $content = shift @_;
+	
+	my $list_scraper = scraper {
+		process '#parcelTable tbody tr', 'entries[]' => scraper {
+			
+			process 'td strong a', 'Parcel_Number' => 'TEXT';
+			process 'td strong', 'City' => sub {
+				my $html = $_->as_HTML();
+				my $city = 'UNKNOWN';
+				if ($html =~ m/<br[^>]*>(?<city>[^<]+)/) {
+					$city = $self->trim($+{city});
+					$city =~ s/(CITY|VILLAGE|TOWN)\s+OF\s+//;
+				}
+				return $city;
+			};
+			process 'td ul li', 'Owners[]' => 'TEXT';
+			process 'td div', 'Address' => sub { return $self->trim($self->strip($_->as_HTML())); };
+		}
+	};
+	
+	my $results = $list_scraper->scrape($content);
+	return $results->{entries} || [];
 }
 
 sub _getSearchResults {
@@ -110,7 +138,7 @@ sub _getSearchResults {
 	if ($page =~ m/Parcel Not Found/) {
 		# :(
 	} elsif ($page =~ m/id="parcelTable"/) {
-		push @$result, 'MULTIPLE'
+		$result = $self->_getParcelList($page);
 	} else {
 		push @$result, $self->_getParcelData($page);
 	}
